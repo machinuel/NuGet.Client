@@ -24,6 +24,10 @@
     <DefineConstants>$(DefineConstants);IS_SIGNING_SUPPORTED</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(EnforceCodeStyleInBuild)' != '' And '$(IsOfficialBuild)' != 'true'">
+    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+  </PropertyGroup>
+
   <!-- Include shared files for netcore projects -->
   <ItemGroup Condition=" ('$(IsNetCoreProject)' == 'true' AND '$(SkipShared)' != 'true' AND '$(TestProject)' != 'true') OR '$(IncludeNuGetSharedFiles)' == 'true'">
     <Compile Include="$(SharedDirectory)\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
@@ -60,7 +64,7 @@
   </PropertyGroup>
 
   <ImportGroup Condition=" '$(PackProject)' == 'true' AND '$(NuGetBuildTasksPackTargets)' != '' ">
-      <Import Project="$(NuGetBuildTasksPackTargets)" />
+    <Import Project="$(NuGetBuildTasksPackTargets)" />
   </ImportGroup>
 
   <!-- Readme file in shipping packages -->
@@ -73,7 +77,7 @@
     <None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
-    <!-- Don't use PublicApiAnalyzer on source-build .NET -->
+  <!-- Don't use PublicApiAnalyzer on source-build .NET -->
   <PropertyGroup Condition=" '$(DotNetBuildFromSource)' == 'true' ">
     <UsePublicApiAnalyzer>false</UsePublicApiAnalyzer>
   </PropertyGroup>
@@ -96,7 +100,7 @@
   <ImportGroup Condition=" '$(TestProject)' == 'true' ">
     <Import Project="test.targets" />
   </ImportGroup>
-  
+
 
   <!-- Allow WPF projects to run under NETCore SDK -->
   <!-- Errors occur if the output path is not set correctly -->
@@ -168,7 +172,7 @@
     ============================================================
   -->
   <Target Name="GetSymbolsToIndex" DependsOnTargets="$(GetSymbolsToIndexDependsOn)" Returns="@(SymbolFilesToIndex)" />
-  
+
   <Target Name="GetSymbolsToIndexDefault" DependsOnTargets="GetTargetFrameworkSet" Returns="@(SymbolFilesToIndex)" Condition=" '$(Shipping)' == 'true' ">
     <MSBuild
       Projects="$(MSBuildProjectFullPath)"
@@ -190,8 +194,8 @@
     ============================================================
   -->
   <Target Name="GetSigningInputs" DependsOnTargets="$(GetSigningInputsDependsOn)" Returns="@(DllsToSign)" />
- 
- <!--
+
+  <!--
     ============================================================
     The default target to get signing inputs for a particular project
     ============================================================
@@ -276,7 +280,8 @@
       <!-- remove all net45 assemblies, otherwise loc tools have problem loading two assemblies of same name in same appdomain. net45 doesn't ship in VSIX, so doesn't need loc. -->
       <DllsToLocalizeWithMetadata Include="@(BuiltProjectOutputGroupOutput->'%(FinalOutputPath)')"
 Condition=" ('%(Extension)' == '.dll' OR '%(Filename)' == 'NuGet.CommandLine.XPlat' OR '%(Filename)' == 'NuGet') AND !($([System.String]::new('%(FullPath)').Contains('\net45\'))) " KeepDuplicates="false">
-        <TranslationFile>$(LocalizationWorkDirectory)\{Lang}\15\%(Filename)%(Extension).lcl</TranslationFile>    <!--Required: translation file-->
+        <TranslationFile>$(LocalizationWorkDirectory)\{Lang}\15\%(Filename)%(Extension).lcl</TranslationFile>
+        <!--Required: translation file-->
         <LciCommentFile>$(LocalizationWorkDirectory)\comments\15\%(Filename)%(Extension).lci</LciCommentFile>
         <HasLceComments>false</HasLceComments>
       </DllsToLocalizeWithMetadata>
@@ -395,7 +400,7 @@ Condition=" ('%(Extension)' == '.dll' OR '%(Filename)' == 'NuGet.CommandLine.XPl
   </Target>
 
   <Target Name="GetAllTargetFrameworks">
-  <PropertyGroup>
+    <PropertyGroup>
       <EffectiveFramework Condition=" '$(TargetFrameworks)' != '' ">$(TargetFrameworks)</EffectiveFramework>
       <EffectiveFramework Condition=" '$(EffectiveFramework)' == '' ">$(TargetFramework)</EffectiveFramework>
     </PropertyGroup>
