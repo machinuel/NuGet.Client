@@ -25,8 +25,6 @@ parameters:
   default: false
 
 variables:
-  BuildPlatform: Any CPU
-  BuildConfiguration: Debug
   DOTNET_NOLOGO: 1
   NUGET_EXPERIMENTAL_CHAIN_BUILD_RETRY_POLICY: 3,1000
   SkipSigning: true
@@ -36,54 +34,139 @@ jobs:
 - ${{ if eq(parameters.RunUnitTestsOnWindows, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: UnitTestsWindows
-      displayName: Unit Tests on Windows
+      name: UnitTestsWindows_net472
+      displayName: Unit Tests on Windows (.NET Framework 4.7.2)
       osName: Windows
       vmImage: windows-latest
       testType: Unit
+      testTargetFramework: net472
+
+- ${{ if eq(parameters.RunUnitTestsOnWindows, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: UnitTestsWindows_net80
+      displayName: Unit Tests on Windows (.NET 8.0)
+      osName: Windows
+      vmImage: windows-latest
+      testType: Unit
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunUnitTestsOnWindows, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: UnitTestsWindows_net31
+      displayName: Unit Tests on Windows (.NET Core 3.1)
+      osName: Windows
+      vmImage: windows-latest
+      testType: Unit
+      testTargetFramework: netcoreapp3.1
 
 - ${{ if eq(parameters.RunFunctionalTestsOnWindows, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: FunctionalTestsWindows
-      displayName: Functional Tests on Windows
+      name: FunctionalTestsWindows_net472
+      displayName: Functional Tests on Windows (.NET Framework 4.7.2)
       osName: Windows
       vmImage: windows-latest
       testType: Functional
-      timeoutInMinutes: 180
+      testTargetFramework: net472
+
+- ${{ if eq(parameters.RunFunctionalTestsOnWindows, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: FunctionalTestsWindows_net80
+      displayName: Functional Tests on Windows (.NET 8.0)
+      osName: Windows
+      vmImage: windows-latest
+      testType: Functional
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunFunctionalTestsOnWindows, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: FunctionalTestsWindows_net31
+      displayName: Functional Tests on Windows (.NET Core 3.1)
+      osName: Windows
+      vmImage: windows-latest
+      testType: Functional
+      testTargetFramework: netcoreapp3.1
 
 - ${{ if eq(parameters.RunUnitTestsOnLinux, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: UnitTestsLinux
-      displayName: Unit Tests on Linux
+      name: UnitTestsLinux_net80
+      displayName: Unit Tests on Linux (.NET 8.0)
       osName: Linux
       vmImage: ubuntu-latest
       testType: Unit
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunUnitTestsOnLinux, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: UnitTestsLinux_net31
+      displayName: Unit Tests on Linux (.NET Core 3.1)
+      osName: Linux
+      vmImage: ubuntu-latest
+      testType: Unit
+      testTargetFramework: netcoreapp3.1
 
 - ${{ if eq(parameters.RunFunctionalTestsOnLinux, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: FunctionalTestsLinux
-      displayName: Functional Tests on Linux
+      name: FunctionalTestsLinux_net80
+      displayName: Functional Tests on Linux (.NET 8.0)
       osName: Linux
       vmImage: ubuntu-latest
       testType: Functional
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunFunctionalTestsOnLinux, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: FunctionalTestsLinux_net31
+      displayName: Functional Tests on Linux (.NET Core 3.1)
+      osName: Linux
+      vmImage: ubuntu-latest
+      testType: Functional
+      testTargetFramework: netcoreapp3.1
 
 - ${{ if eq(parameters.RunUnitTestsOnMacOS, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: UnitTestsMac
-      displayName: Unit Tests on MacOS
+      name: UnitTestsMac_net80
+      displayName: Unit Tests on MacOS (.NET 8.0)
       osName: MacOS
       vmImage: macos-latest
       testType: Unit
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunUnitTestsOnMacOS, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: UnitTestsMac_net31
+      displayName: Unit Tests on MacOS (.NET Core 3.1)
+      osName: MacOS
+      vmImage: macos-latest
+      testType: Unit
+      testTargetFramework: netcoreapp3.1
 
 - ${{ if eq(parameters.RunFunctionalTestsOnMacOS, true) }}:
   - template: pull_request.job.yml
     parameters:
-      name: FunctionalTestsMac
-      displayName: Functional Tests on MacOS
+      name: FunctionalTestsMac_net80
+      displayName: Functional Tests on MacOS (.NET 8.0)
       osName: MacOS
       vmImage: macos-latest
       testType: Functional
+      testTargetFramework: net8.0
+
+- ${{ if eq(parameters.RunFunctionalTestsOnMacOS, true) }}:
+  - template: pull_request.job.yml
+    parameters:
+      name: FunctionalTestsMac_net31
+      displayName: Functional Tests on MacOS (.NET Core 3.1)
+      osName: MacOS
+      vmImage: macos-latest
+      testType: Functional
+      testTargetFramework: netcoreapp3.1
