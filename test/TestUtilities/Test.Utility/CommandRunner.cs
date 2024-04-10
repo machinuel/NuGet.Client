@@ -3,131 +3,158 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace NuGet.Test.Utility
 {
+    /// <summary>
+    /// Represents a class to run an executable and capture the output and error streams.
+    /// </summary>
     public class CommandRunner
     {
-        // Item1 of the returned tuple is the exit code. Item2 is the standard output, and Item3
-        // is the error output.
-        public static CommandRunnerResult Run(
-            string filename,
-            string workingDirectory,
-            string arguments,
-            int timeOutInMilliseconds = 60000,
-            Action<StreamWriter> inputAction = null,
-            IDictionary<string, string> environmentVariables = null)
-        {
-            var output = new StringBuilder();
-            var error = new StringBuilder();
+        private readonly string _arguments;
+        private readonly IDictionary<string, string> _environmentVariables;
+        private readonly StringBuilder _error = new();
+        private readonly string _filename;
+        private readonly Action<StreamWriter> _inputAction;
+        private readonly StringBuilder _output = new();
+        private readonly int _timeoutInMilliseconds;
+        private readonly string _workingDirectory;
 
-            using var process = new Process
+        private CommandRunner(string filename, string arguments, string workingDirectory, int timeoutInMilliseconds = 60000, Action<StreamWriter> inputAction = null, IDictionary<string, string> environmentVariables = null)
+        {
+            _filename = filename;
+            _arguments = arguments;
+            _workingDirectory = workingDirectory;
+            _timeoutInMilliseconds = timeoutInMilliseconds;
+            _inputAction = inputAction;
+            _environmentVariables = environmentVariables;
+        }
+
+        /// <summary>
+        /// Runs the specified executable and returns the result.
+        /// </summary>
+        /// <param name="filename">The path to the executable to run.</param>
+        /// <param name="workingDirectory">An optional working directory to use when running the executable.</param>
+        /// <param name="arguments">Optional command-line arguments to pass to the executable.</param>
+        /// <param name="timeOutInMilliseconds">Optional amount of milliseconds to wait for the executable to exit before returning.</param>
+        /// <param name="inputAction">An optional <see cref="Action{T}" /> to invoke against the executables input stream.</param>
+        /// <param name="environmentVariables">An optional <see cref="Dictionary{TKey, TValue}" /> containing environment variables to specify when running the executable.</param>
+        /// <returns>A <see cref="CommandRunnerResult" /> containing details about the result of the running the executable including the exit code and console output.</returns>
+        public static CommandRunnerResult Run(string filename, string workingDirectory = null, string arguments = null, int timeOutInMilliseconds = 60000, Action<StreamWriter> inputAction = null, IDictionary<string, string> environmentVariables = null)
+        {
+            CommandRunner commandRunner = new(filename, arguments ?? string.Empty, workingDirectory ?? Environment.CurrentDirectory, timeOutInMilliseconds, inputAction, environmentVariables);
+
+            return commandRunner.Run();
+        }
+
+        public CommandRunnerResult Run()
+        {
+            using Process process = new()
             {
-                EnableRaisingEvents = true,
-                StartInfo = new ProcessStartInfo(Path.GetFullPath(filename), arguments)
+                StartInfo = new ProcessStartInfo(Path.GetFullPath(_filename), _arguments)
                 {
-                    WorkingDirectory = Path.GetFullPath(workingDirectory),
+                    WorkingDirectory = Path.GetFullPath(_workingDirectory),
                     UseShellExecute = false,
-                    CreateNoWindow = true,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true,
-                    RedirectStandardInput = inputAction != null
+                    RedirectStandardInput = _inputAction != null
                 }
             };
 
             process.StartInfo.Environment["NuGetTestModeEnabled"] = bool.TrueString;
 
-            if (environmentVariables != null)
+            if (_environmentVariables != null)
             {
-                foreach (var pair in environmentVariables)
+                foreach (var pair in _environmentVariables)
                 {
                     process.StartInfo.EnvironmentVariables[pair.Key] = pair.Value;
                 }
             }
 
-            process.OutputDataReceived += (_, args) =>
+            process.OutputDataReceived += OnOutputDataReceived;
+            process.ErrorDataReceived += OnErrorDataReceived;
+
+            bool started = process.Start();
+
+            if (!started)
             {
-                if (args.Data != null)
-                {
-                    output.AppendLine(args.Data);
-                }
-            };
+                throw new Exception($"Failed to start process {process.StartInfo.FileName} {process.StartInfo.Arguments}");
+            }
 
-            process.ErrorDataReceived += (_, args) =>
-            {
-                if (args.Data != null)
-                {
-                    error.AppendLine(args.Data);
-                }
-            };
-
-            process.Start();
-
-            inputAction?.Invoke(process.StandardInput);
+            _inputAction?.Invoke(process.StandardInput);
 
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            bool processExited = process.WaitForExit(timeOutInMilliseconds);
+            bool exited = process.WaitForExit(_timeoutInMilliseconds);
 
-            if (processExited)
+            if (exited)
             {
-                process.WaitForExit();
+                Task task = Task.Run(() =>
+                {
+                    // This overload ensures that all processing has been completed, including the handling of asynchronous events for redirected standard output.
+                    // You should use this overload after a call to the WaitForExit(Int32) overload when standard output has been redirected to asynchronous event handlers.
+                    process.WaitForExit();
+                });
 
-                return new CommandRunnerResult(process, process.ExitCode, output.ToString(), error.ToString());
+                exited = task.Wait(millisecondsTimeout: 5000);
+
+                return new CommandRunnerResult(process.ExitCode, _output.ToString(), _error.ToString());
             }
 
             string extraInfo = string.Empty;
 
             if (!TryKill(process, out Exception processException))
             {
-                extraInfo = $"Failed to kill the process: {processException}";
+                extraInfo = $"Failed to kill the process: {processException?.ToString() ?? "Timed out waiting for the process to be terminated"}";
             }
 
-            throw new TimeoutException($"{process.StartInfo.FileName} {process.StartInfo.Arguments} timed out after {TimeSpan.FromMilliseconds(timeOutInMilliseconds).TotalSeconds:N0} seconds:{Environment.NewLine}Output:{output}{Environment.NewLine}Error:{error}{Environment.NewLine}{extraInfo}");
+            throw new TimeoutException($"{process.StartInfo.FileName} {process.StartInfo.Arguments} timed out after {TimeSpan.FromMilliseconds(_timeoutInMilliseconds).TotalSeconds:N0} seconds:{Environment.NewLine}Output:{_output}{Environment.NewLine}Error:{_error}{Environment.NewLine}{extraInfo}");
+        }
 
-            bool TryKill(Process process, out Exception exception)
+        private void OnErrorDataReceived(object sender, DataReceivedEventArgs args)
+        {
+            if (args.Data != null)
             {
-                exception = null;
-
-                try
-                {
-                    process.Kill();
-
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    exception = e;
-                }
-
-                try
-                {
-                    if (process.HasExited)
-                    {
-                        return true;
-                    }
-
-                    bool exited = process.WaitForExit(milliseconds: 10000);
-
-                    if (!exited)
-                    {
-                        exception = new TimeoutException("Timed out waiting for process to end after attempting to kill it.", innerException: exception);
-                    }
-
-                    return exited;
-                }
-                catch (Exception e)
-                {
-                    exception = e;
-                }
-
-                return false;
+                _error.AppendLine(args.Data);
             }
+        }
+
+        private void OnOutputDataReceived(object sender, DataReceivedEventArgs args)
+        {
+            if (args.Data != null)
+            {
+                _output.AppendLine(args.Data);
+            }
+        }
+
+        private bool TryKill(Process process, out Exception exception)
+        {
+            exception = null;
+
+            try
+            {
+                Task task = Task.Run(() => process.Kill());
+
+                bool exited = task.Wait(5000);
+
+                if (!exited)
+                {
+                    exception = new TimeoutException("Timed out waiting for process to end after attempting to kill it.", innerException: exception);
+                }
+
+                return exited;
+            }
+            catch (Exception e)
+            {
+                exception = e;
+            }
+
+            return false;
         }
     }
 }

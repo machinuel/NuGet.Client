@@ -34,8 +34,8 @@
     <TargetFrameworksUnitTest Condition="'$(IsXPlat)' != 'true' And '$(DotNetBuildFromSource)' != 'true'">$(NETFXTargetFramework);$(TargetFrameworksUnitTest)</TargetFrameworksUnitTest>
 
     <!-- Target frameworks for unit tests that test libaries using signing APIs -->
-    <TargetFrameworksUnitTestForSigning>$(NETCoreTargetFramework)</TargetFrameworksUnitTestForSigning>
-    <TargetFrameworksUnitTestForSigning Condition="'$(IsXPlat)' != 'true' And '$(DotNetBuildFromSource)' != 'true'">$(NETFXTargetFramework);$(TargetFrameworksUnitTestForSigning);$(NETCoreLegacyTargetFramework)</TargetFrameworksUnitTestForSigning>
+    <TargetFrameworksUnitTestForSigning>$(NETCoreTargetFramework);$(NETCoreLegacyTargetFramework)</TargetFrameworksUnitTestForSigning>
+    <TargetFrameworksUnitTestForSigning Condition="'$(IsXPlat)' != 'true' And '$(DotNetBuildFromSource)' != 'true'">$(NETFXTargetFramework);$(TargetFrameworksUnitTestForSigning)</TargetFrameworksUnitTestForSigning>
   </PropertyGroup>
 
   <!-- Common -->
