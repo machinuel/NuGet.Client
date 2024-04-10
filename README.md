@@ -30,3 +30,4 @@ File NuGet.Client bugs in the [NuGet/Home](https://github.com/nuget/home/issues)
 ## License
 
 Unless explicitly stated otherwise all files in this repository are licensed under the License in the root repository
+# GitHubDesktop
