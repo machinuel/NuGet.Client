@@ -1,5 +1,4 @@
 parameters:
-- name: name
 - name: displayName
 - name: osName
 - name: vmImage
@@ -7,10 +6,10 @@ parameters:
 - name: testTargetFramework
 - name: timeoutInMinutes
   type: number
-  default: 60
+  default: 120
 
 jobs:
-- job: ${{ parameters.name }}
+- job:
   displayName: ${{ parameters.displayName }}
   timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
   variables:
